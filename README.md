@@ -47,6 +47,84 @@ git init
 
 then commit and do your first push.  
 
+Now it's time to configure `configure/database.yaml` to connect to the database.  
+Make it look like this:  
+
+![database.yml][database.yml]  
+
+[Rails]' default database is sqlite3.  
+Accomodate accordingly, I am using [Postgre] :  
+
+```
+source 'http://rubygems.org'
+
+gem 'rails', '~> 5.0.0', '>= 5.0.0.1'
+gem 'pg'
+gem 'puma', '~> 3.0'
+gem 'sass-rails', '~> 5.0'
+gem 'uglifier', '>= 1.3.0'
+gem 'coffee-rails', '~> 4.2'
+gem 'jquery-rails'
+gem 'turbolinks', '~> 5'
+gem 'jbuilder', '~> 2.5'
+gem 'bcrypt', '~> 3.1.7'
+gem 'bootstrap-sass'
+
+
+group :development do 
+  gem 'web-console'
+end
+
+group :development, :test do
+  gem 'byebug'
+  gem 'rspec-rails', '~> 3.5'
+  gem 'rails-controller-testing'
+  gem 'factory_girl_rails', "~> 4.0"
+  gem 'capybara'
+  gem 'faker'
+
+end
+
+gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+
+gem 'devise'
+
+```
+
+A few things here,  
+
+- `gen devise` 
+ + is an authentication mechanism 
+- `gem gootstrap-sass`
+ + for styling (we have to manually hook  
+ this up at `app/assets/stylesheets/application.css`) 
+- testing gems (we're gonna test before we implement)  
+
+Now run 
+
+`
+bundle install
+`  
+
+Now check that the app scaffolded app runs by launching [Rails]' build in server  
+
+`
+rails server
+`  
+
+from the root of the app.  
+Open a browser and navigate to the default [Rails] port 3000 `localhost:3000`.  
+If you get a `Yay! You're on Rails!` welcome page, all is well.  
+If not... check the rails server output in the console from where you ran the command.  
+
+
+Once all dependencies installed, initiate the database by runnig    
+
+`
+bin/rails db:migrate  
+`  
+
+
 
 
 
@@ -59,7 +137,9 @@ then commit and do your first push.
 [MVC]: https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller`
 [Bootstrap]: http://getbootstrap.com/getting-started/
 [Git]: https://git-scm.com/
+[Postgre]: https://www.postgresql.org/about/
 
 [rails-pic]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/rail.png
 [mvc-pic]: https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/MVC-Process.svg/300px-MVC-Process.svg.png
 [bootstrap-pic]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/bootstrap.png
+[database.yml]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/databaseYaml.png
