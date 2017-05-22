@@ -370,32 +370,193 @@ Once that implemented, we have a working User Model.
 
 ## 4.2 Message Model tests -with associations  
 
+### 4.2.1 Migrations for [Rails Associations]
+
+The database table for the `Message` Model needs column `user_id` for the [Rails] association  
+```
+bin/rails g migration AddUserRefToMessages user:references
+```  
+
+This generates  
+
+```ruby
+class AddUserRefToMessages < ActiveRecord::Migration[5.0]
+  def change
+    add_reference :messages, :user, foreign_key: true
+  end
+end
+```  
+
+which will create the corresponding column for the association on the `Message` Model.  
+To make this happen run  
+
+```
+bin/rails db:migrate
+```  
+
+The shema, at `db/schema.rb` now looks like  
+
+```ruby
+create_table "messages", force: :cascade do |t|
+  t.string   "title"
+  t.text     "body"
+  t.datetime "created_at", null: false
+  t.datetime "updated_at", null: false
+  t.integer  "user_id"
+  t.index ["user_id"], name: "index_messages_on_user_id", using: :btree
+end
+```  
+
+The test database needs to be prepared too  
+
+```
+bin/rails db:migrate RAILS_ENV=test
+```  
 
 
+### 4.2.2 Message Model Spec  
+
+To test the `Message` & `User` association, create a message and make the `user_id = nil`.    If the *association* exists, then saving this record with a **nil** *reference* to the association would return *false*; if this returns true, the test for the association failed.  
+
+```ruby
+it "should not save message without association" do 
+  @message = Message.new title: 'some title', body: 'some body', user_id: nil
+  
+  expect(@message.save).to be false
+end
+```  
+
+Which *fails*  
+
+![association fail][association fail]  
+
+To make this test pass, the `Message` and `User` *Model* must contain the appropriate associations  
 
 
+#### [Rails Associations]  
+
+Each `User` can have multiple *messages* and *comments*
+
+```ruby
+class User < ApplicationRecord
+  has_many :messages
+  has_many :comments
+end
+```  
+
+Each `Message` belongs to a `User` **and** can have multiple *comments*  
+
+```ruby
+class Message < ApplicationRecord
+  belongs_to :user
+  has_many :comments
+end
+```  
+
+Note the plural on both associations.  
+Finally, each `Comment` belongs to a `User` and a `Message`  
+
+```ruby
+class Comment < ApplicationRecord
+  
+  belongs_to :user
+  belongs_to :message
+  
+end
+```  
+
+Note the plural for the `has_many` vs the singular for the `belongs_to`.  
+Now the test passes because the Models have been linked and the database expects a *reference* in Model objects that are linked.  
+
+The rest of the tests pertain to *validation* for the title and the body
+
+```ruby
+# for the title 
+
+expect(@message.save).to be false
+expect{ @message.save! }.to raise_error ActiveRecord::RecordInvalid, /Title can't be blank/
+
+# for the body
+
+expect(@message.save).to be false
+expect{ @message.save! }.to raise_error ActiveRecord::RecordInvalid, /Body can't be blank/
+```  
 
 
+### 4.3 FactoryGirl for Controller specs  
+
+[FactoryGirl Associations] are very convenient for testing.  
+
+```ruby
+factory :user_with_messages, class: User do 
+  email "user_with_messages@example.com"
+  firstName "first Name"
+  lastName "last Name"
+  about "something about this user"
+
+  factory :messages_for_user do 
+
+    transient do 
+      message_count 3
+    end
+
+    after(:create) do |user, evaluator| 
+      create_list(:message_1, evaluator.message_count, user: user)
+    end
+
+  end
+
+end
+```  
+
+Here, `:messages_for_user` factory  
+
+- is inside `user_with_messages`  
+- has a `transient` attribute: `message_count`  
+    + available as a factory attribute and in [FactoryGirl Callback]s
+- [FactoryGirl Callback] `after()` yields  
+    + User instance `:user_with_messages` in this case  
+    + an `evaluator` with ALL the factory values  
+- `create_list()` method takes
+    + factory to use: `:message_1` in this case  
+    + number of records to create: *transient attribute* `message_count`
+    + **associating** to user 
 
 
+Factory `:message_1` looks like this  
+
+```ruby
+FactoryGirl.define do
+
+  factory :message_1, class: Message do
+    association :user
+    
+    title "some title for a message"
+    body "Some message I have for the world to read!"
+  end
+  
+end
+```  
+
+Here, `association :user` ties this factory to the *User Model* and the factory will **FAIL** to create if the *association* is not present.     
 
 
+Code like  
 
+```
+create(:messages_for_user)
+```  
 
+will  
 
+- automatically create the parent factory: `:user_with_messages`
+- run the `after(:create)` callback and produce `message_count` messages  
 
+It's possible to override the `transient attribute`  
 
-
-
-
-
-
-
-
-
-
-
-
+```
+create(:messages_for_user, message_count: 10)
+```  
 
 
 
@@ -436,39 +597,6 @@ to `app/views/layouts/application.html.erb`
 
 Devise is now ready to create/authenticate users.  
 
-
-
-# 4. [Rails Associations]  
-
-Each `User` can have multiple *messages* and *comments*
-
-```ruby
-class User < ApplicationRecord
-  has_many :messages
-  has_many :comments
-end
-```  
-
-Each `Message` belongs to a `User` **and** can have multiple *comments*  
-
-```ruby
-class Message < ApplicationRecord
-  belongs_to :user
-  has_many :comments
-end
-```  
-
-Note the plural on both associations.  
-Finally, each `Comment` belongs to a `User` and a `Message`  
-
-```ruby
-class Comment < ApplicationRecord
-  
-  belongs_to :user
-  belongs_to :message
-  
-end
-```  
 
 # 5. A bit about [MVC] frameworks
 
@@ -543,6 +671,8 @@ Now the server will point to our root configuration in `config/routes.rb` and re
 [Eager Loading Associations]: http://guides.rubyonrails.org/active_record_querying.html#eager-loading-multiple-associations
 [rspec-rails]: https://github.com/rspec/rspec-rails
 [FactoryGirl]: https://github.com/thoughtbot/factory_girl
+[FactoryGirl Associations]: http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md#Associations
+[FactoryGirl Callback]: http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md#Callbacks
 [Rspec Expectations]: https://github.com/rspec/rspec-expectations
 [Rails Validations]: http://guides.rubyonrails.org/active_record_validations.html
 [Rails Callback]: http://guides.rubyonrails.org/active_record_callbacks.html#callbacks-overview
@@ -556,3 +686,4 @@ Now the server will point to our root configuration in `config/routes.rb` and re
 [User scaffold]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/userScaffold.png
 [test-migration]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/test-migration.png
 [user-test1-fail]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/test1_fail.png
+[association fail]: https://s3-us-west-2.amazonaws.com/zencodemaster/tutorials/railsmessageboard/associationFail.png
