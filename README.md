@@ -558,7 +558,7 @@ It's possible to override the `transient attribute`
 create(:messages_for_user, message_count: 10)
 ```  
 
-**TO BE CONTINUED IN PART II ...**
+# **TO BE CONTINUED IN PART II ...**
 
 
 [Ruby]: https://www.ruby-lang.org/en/
