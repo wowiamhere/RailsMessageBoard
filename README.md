@@ -483,7 +483,7 @@ expect{ @message.save! }.to raise_error ActiveRecord::RecordInvalid, /Body can't
 ```  
 
 
-### 4.3 FactoryGirl for Controller specs  
+## 4.3 FactoryGirl for Controller specs  
 
 [FactoryGirl Associations] are very convenient for testing.  
 
@@ -560,87 +560,6 @@ create(:messages_for_user, message_count: 10)
 
 
 
-# 3. [Devise] (Authentication)
-
-
-[Devise] is an Authentication system, it will alter the User Model and add some fields to the table.  Run   
-
-```
-bin/rails g devise:install
-```  
-
-Before connecting [Devise] to a Model (User), some configuration is due:  
-
-In `config/environments/development.rb` add  
-
-```
-config.action_mailer.defulat_url_options = { host: 'localhost', port: 3000 }
-```  
-
-In `config/routes.rb` a root route needs to be hard coded  
-
-```ruby
-root to: 'message#index'
-```  
-
-To satisfy [Devise]'s and [Rails]' **flash** messages, add `app/views/layouts/application.html.erb`
-
-```html
-<div class="">
-  <% flash.each do |message_type, message| %>
-    <div class="alert alert-<%= message_type %> cFlashMsg"><%= message %></div>
-  <% end %>
-</div> 
-```  
-
-to `app/views/layouts/application.html.erb`
-
-Devise is now ready to create/authenticate users.  
-
-
-# 5. A bit about [MVC] frameworks
-
-The server will **not** serve our app at this stage, because there are a few components missing from our [Rails] framework.  
-
-Following the [MVC] framework *(Model-View-Controller)*  
-
-- `User` is the model
-- `MessagesController` satisfies the controller
-
-Now an *Action* (method) is needed inside the controller that renders the *View* part of the framework.  
-
-In `app/controllers/messages_controller.rb` implement `#index`   
-
-```ruby
-def index
-  @messages = Message.includes(:user, :comments).all
-end
-```  
-
-This fetches **all** messages along with the `:user` and `:comments` associated to each `Message`.  
-This is called [Eager Loading Associations] and is very usefull for fetching data, for example    
-
-```ruby
-@user = User.include(:messages, :comments).find(1)
-@user.messages
-@user.comments
-```  
-
-yields the `User` comments and messages in 1 query.  
-
-
-To satisfy the view part of the [Rails] framework, create `app/views/messages/index.html.erb`  
-```ruby
-
-```  
-
-  
-The body's of `#index` and `index.html.erb` will be coded as we test the application.  
-
-Now the server will point to our root configuration in `config/routes.rb` and render an empty page, which is exactly what we have thus far.  
-
-
-# 4. First Tests Rspec -Models  
 
 
 
